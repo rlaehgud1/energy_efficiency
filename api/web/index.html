@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ResStock AI 건물 냉난방 부하 예측 서비스</title>
+  <style>
+    * { 
+      box-sizing: border-box; 
+      font-family: 'Pretendard', 'Malgun Gothic', -apple-system, sans-serif; 
+      margin: 0; padding: 0;
+    }
+
+    body { 
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(135deg, #eef2f3 0%, #8e9eab 100%);
+      padding: 30px 15px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 720px;
+      background: #ffffff;
+      padding: 35px 30px;
+      border-radius: 20px;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.12);
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 25px;
+    }
+
+    .badge {
+      display: inline-block;
+      background-color: #e8f0fe;
+      color: #1a73e8;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 6px 14px;
+      border-radius: 20px;
+      margin-bottom: 10px;
+    }
+
+    .header h1 {
+      font-size: 24px;
+      color: #1e293b;
+      margin-bottom: 8px;
+    }
+
+    .header p {
+      font-size: 13px;
+      color: #64748b;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      background: #f1f5f9;
+      padding: 6px;
+      border-radius: 12px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      background: transparent;
+      color: #64748b;
+      font-size: 14px;
+      font-weight: 700;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .tab-btn.active {
+      background: #ffffff;
+      color: #2563eb;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .form-group {
+      margin-bottom: 12px;
+    }
+
+    .form-group.full-width {
+      grid-column: span 2;
+    }
+
+    label {
+      display: block;
+      font-weight: 700;
+      font-size: 13px;
+      margin-bottom: 6px;
+      color: #334155;
+    }
+
+    .input-wrapper {
+      position: relative;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #0f172a;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+
+    input:focus, select:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    }
+
+    .unit {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 13px;
+      font-weight: 600;
+      color: #94a3b8;
+    }
+
+    .section-title {
+      font-size: 15px;
+      font-weight: 800;
+      color: #1e293b;
+      margin: 18px 0 12px 0;
+      padding-bottom: 6px;
+      border-bottom: 2px solid #f1f5f9;
+      grid-column: span 2;
+    }
+
+    .submit-btn {
+      width: 100%;
+      padding: 15px;
+      margin-top: 15px;
+      background: linear-gradient(90deg, #2563eb, #1d4ed8);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+      transition: transform 0.1s ease, box-shadow 0.2s ease;
+    }
+
+    .submit-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4);
+    }
+
+    .result-box {
+      margin-top: 25px;
+      padding: 20px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      display: none;
+    }
+
+    .result-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #1e293b;
+      margin-bottom: 12px;
+    }
+
+    .result-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .result-card {
+      background: white;
+      padding: 14px;
+      border-radius: 10px;
+      border: 1px solid #f1f5f9;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+    }
+
+    .result-card .label {
+      font-size: 12px;
+      color: #64748b;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .result-card .value {
+      font-size: 20px;
+      font-weight: 800;
+    }
+
+    .heating .value { color: #ef4444; }
+    .cooling .value { color: #3b82f6; }
+
+    .warning-box {
+      background-color: #fffbe3;
+      border: 1px solid #ffe58f;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      color: #856404;
+      margin-top: 10px;
+      display: none;
+    }
+
+    .note {
+      font-size: 11px;
+      color: #94a3b8;
+      margin-top: 10px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="header">
+      <span class="badge">ResStock ML Model</span>
+      <h1>🏠 AI 기반 건물 냉난방 부하 예측</h1>
+      <p>주택 조건과 설비를 입력해 연간 난방 및 냉방 부하를 예측해보세요.</p>
+    </div>
+
+    <!-- 탭 선택 -->
+    <div class="tabs">
+      <button class="tab-btn active" type="button" onclick="switchTab('simple')">간편 모드 (9개 입력 / R² ~0.74)</button>
+      <button class="tab-btn" type="button" onclick="switchTab('detail')">상세 모드 (27개 입력 / R² ~0.94)</button>
+    </div>
+
+    <form id="predictForm">
+      <div class="form-grid">
+
+        <!-- 1. 기본 정보 (공통) -->
+        <div class="form-group">
+          <label for="area_pyeong">바닥 면적 (평수, 7.7~157평)</label>
+          <div class="input-wrapper">
+            <input type="text" id="area_pyeong" value="34.5" placeholder="예: 34.5" inputmode="decimal" pattern="[0-9.]*" required>
+            <span class="unit">평</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="stories">층수 (1~21층)</label>
+          <input type="text" id="stories" value="2" inputmode="numeric" pattern="[0-9]*" required>
+        </div>
+
+        <div class="form-group">
+          <label for="state">지역 (미국 주)</label>
+          <select id="state">
+            <option value="CA" selected>CA (California)</option>
+            <option value="TX">TX (Texas)</option>
+            <option value="NY">NY (New York)</option>
+            <option value="FL">FL (Florida)</option>
+            <option value="IL">IL (Illinois)</option>
+            <option value="WA">WA (Washington)</option>
+            <option value="AL">AL</option><option value="AR">AR</option><option value="AZ">AZ</option><option value="CO">CO</option><option value="CT">CT</option><option value="DC">DC</option><option value="DE">DE</option><option value="GA">GA</option><option value="IA">IA</option><option value="ID">ID</option><option value="IN">IN</option><option value="KS">KS</option><option value="KY">KY</option><option value="LA">LA</option><option value="MA">MA</option><option value="MD">MD</option><option value="ME">ME</option><option value="MI">MI</option><option value="MN">MN</option><option value="MO">MO</option><option value="MS">MS</option><option value="MT">MT</option><option value="NC">NC</option><option value="ND">ND</option><option value="NE">NE</option><option value="NH">NH</option><option value="NJ">NJ</option><option value="NM">NM</option><option value="NV">NV</option><option value="OH">OH</option><option value="OK">OK</option><option value="OR">OR</option><option value="PA">PA</option><option value="RI">RI</option><option value="SC">SC</option><option value="SD">SD</option><option value="TN">TN</option><option value="UT">UT</option><option value="VA">VA</option><option value="VT">VT</option><option value="WI">WI</option><option value="WV">WV</option><option value="WY">WY</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="climate_zone">기후 구역 (Climate Zone)</label>
+          <select id="climate_zone">
+            <option value="5A" selected>5A (습윤 냉대)</option>
+            <option value="1A">1A (가장 더움)</option><option value="2A">2A</option><option value="2B">2B</option><option value="3A">3A</option><option value="3B">3B</option><option value="3C">3C</option><option value="4A">4A</option><option value="4B">4B</option><option value="4C">4C</option><option value="5B">5B</option><option value="6A">6A</option><option value="6B">6B</option><option value="7A">7A (가장 추움)</option><option value="7B">7B</option>
+          </select>
+        </div>
+
+        <div class="form-group full-width">
+          <label for="building_type">건물 유형</label>
+          <select id="building_type">
+            <option value="Single-Family Detached" selected>Single-Family Detached (단독주택)</option>
+            <option value="Single-Family Attached">Single-Family Attached (연립주택)</option>
+            <option value="Multi-Family with 2 - 4 Units">Multi-Family with 2 - 4 Units (2~4가구)</option>
+            <option value="Multi-Family with 5+ Units">Multi-Family with 5+ Units (5가구 이상/아파트)</option>
+            <option value="Mobile Home">Mobile Home (이동식 주택)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="vintage">건축 연대</label>
+          <select id="vintage">
+            <option value="1970s" selected>1970s</option>
+            <option value="<1940">&lt;1940</option><option value="1940s">1940s</option><option value="1950s">1950s</option><option value="1960s">1960s</option><option value="1980s">1980s</option><option value="1990s">1990s</option><option value="2000s">2000s</option><option value="2010s">2010s</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="cooling_type">냉방 설비</label>
+          <select id="cooling_type">
+            <option value="Central AC" selected>Central AC (중앙 에어컨)</option>
+            <option value="Room AC">Room AC (창문형/벽걸이)</option>
+            <option value="Heat Pump">Heat Pump (히트펌프)</option>
+            <option value="None">None (없음)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="heating_type">난방 설비</label>
+          <select id="heating_type">
+            <option value="Ducted Heating" selected>Ducted Heating (덕트식)</option>
+            <option value="Non-Ducted Heating">Non-Ducted Heating (보일러/패널)</option>
+            <option value="Ducted Heat Pump">Ducted Heat Pump (덕트식 히트펌프)</option>
+            <option value="None">None (없음)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="heating_fuel">난방 연료</label>
+          <select id="heating_fuel">
+            <option value="Natural Gas" selected>Natural Gas (도시가스)</option>
+            <option value="Electricity">Electricity (전기)</option>
+            <option value="Fuel Oil">Fuel Oil (등유)</option>
+            <option value="Propane">Propane (LPG)</option>
+            <option value="Other Fuel">Other Fuel</option>
+            <option value="None">None</option>
+          </select>
+        </div>
+
+        <!-- 2. 상세 모드 전용 필드들 (Dynamic Toggle) -->
+        <div id="detailSection" class="full-width" style="display: none;">
+          <div class="form-grid">
+            
+            <div class="section-title">🌡️ 설정 온도 & 인원</div>
+
+            <div class="form-group">
+              <label for="heating_setpoint_f">난방 설정온도 (°F)</label>
+              <input type="text" id="heating_setpoint_f" value="70" inputmode="numeric">
+            </div>
+
+            <div class="form-group">
+              <label for="cooling_setpoint_f">냉방 설정온도 (°F)</label>
+              <input type="text" id="cooling_setpoint_f" value="72" inputmode="numeric">
+            </div>
+
+            <div class="form-group">
+              <label for="bedrooms">침실 수 (1~5)</label>
+              <input type="text" id="bedrooms" value="3" inputmode="numeric">
+            </div>
+
+            <div class="form-group">
+              <label for="occupants">거주 인원 (0~10)</label>
+              <input type="text" id="occupants" value="2" inputmode="numeric">
+            </div>
+
+            <div class="section-title">🧱 단열 & 기밀 & 창문</div>
+
+            <div class="form-group">
+              <label for="infiltration_ach50">기밀도 ACH50 (클수록 외풍 큼)</label>
+              <input type="text" id="infiltration_ach50" value="15" inputmode="numeric">
+            </div>
+
+            <div class="form-group">
+              <label for="wall_r">외벽 단열 R값 (0~19)</label>
+              <input type="text" id="wall_r" value="7" inputmode="numeric">
+            </div>
+
+            <div class="form-group">
+              <label for="ceiling_r">천장 단열 R값 (0~49)</label>
+              <input type="text" id="ceiling_r" value="19" inputmode="numeric">
+            </div>
+
+            <div class="form-group">
+              <label for="roof_r">지붕 단열 R값 (0~49)</label>
+              <input type="text" id="roof_r" value="0" inputmode="numeric">
+            </div>
+
+            <div class="form-group">
+              <label for="floor_r">바닥 단열 R값 (0~30)</label>
+              <input type="text" id="floor_r" value="0" inputmode="numeric">
+            </div>
+
+            <div class="form-group">
+              <label for="wall_type">외벽 구조</label>
+              <select id="wall_type">
+                <option value="Wood Stud" selected>Wood Stud (목조)</option>
+                <option value="Brick, 12-in, 3-wythe">Brick (벽돌)</option>
+                <option value="CMU, 6-in Hollow">CMU (콘크리트 블록)</option>
+              </select>
+            </div>
+
+            <div class="form-group full-width">
+              <label for="windows">창 종류</label>
+             <select id="windows" name="windows" class="form-control">
+  <option value="Double, Clear, Non-metal, Air" selected>Double, Clear, Non-metal, Air</option>
+  <option value="Double, Clear, Metal, Air">Double, Clear, Metal, Air</option>
+  <option value="Double, Clear, Metal, Air, Exterior Clear Storm">Double, Clear, Metal, Air, Exterior Clear Storm</option>
+  <option value="Double, Clear, Non-metal, Air, Exterior Clear Storm">Double, Clear, Non-metal, Air, Exterior Clear Storm</option>
+  <option value="Double, Low-E, Non-metal, Air, M-Gain">Double, Low-E, Non-metal, Air, M-Gain</option>
+  <option value="Single, Clear, Metal">Single, Clear, Metal</option>
+  <option value="Single, Clear, Metal, Exterior Clear Storm">Single, Clear, Metal, Exterior Clear Storm</option>
+  <option value="Single, Clear, Non-metal">Single, Clear, Non-metal</option>
+  <option value="Single, Clear, Non-metal, Exterior Clear Storm">Single, Clear, Non-metal, Exterior Clear Storm</option>
+  <option value="Triple, Low-E, Non-metal, Air, L-Gain">Triple, Low-E, Non-metal, Air, L-Gain</option>
+</select>
+            </div>
+
+            <div class="section-title">📐 외피 면적 (ft²)</div>
+
+            <div class="form-group">
+              <label for="wall_area_ft2">외벽 면적 (ft²)</label>
+              <input type="text" id="wall_area_ft2" value="1341" inputmode="numeric">
+            </div>
+
+            <div class="form-group">
+              <label for="window_area_ft2">창 면적 (ft²)</label>
+              <input type="text" id="window_area_ft2" value="138" inputmode="numeric">
+            </div>
+
+            <div class="form-group">
+              <label for="roof_area_ft2">지붕 면적 (ft²)</label>
+              <input type="text" id="roof_area_ft2" value="1218" inputmode="numeric">
+            </div>
+
+            <div class="form-group">
+              <label for="door_area_ft2">문 면적 (ft²)</label>
+              <input type="text" id="door_area_ft2" value="20" inputmode="numeric">
+            </div>
+
+            <div class="section-title">🏗️ 구조 & 기타</div>
+
+            <div class="form-group">
+              <label for="foundation">기초 형태</label>
+              <select id="foundation">
+                <option value="Ambient">Ambient</option>
+                <option value="Unvented Crawlspace">Unvented Crawlspace</option>
+                <option value="Slab" selected>Slab (슬래브)</option>
+                <option value="Heated Basement">Heated Basement (난방 지하)</option>
+                <option value="Unheated Basement">Unheated Basement (미난방 지하)</option>
+                <option value="Vented Crawlspace">Vented Crawlspace</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="attic">다락</label>
+              <select id="attic">
+                <option value="Vented Attic" selected>Vented Attic (환기 다락)</option>
+                <option value="None">None (없음)</option>
+                <option value="Finished Attic or Cathedral Ceilings">Finished Attic</option>
+              </select>
+            </div>
+
+            <div class="form-group full-width">
+              <label for="garage">차고</label>
+              <select id="garage">
+                <option value="None" selected>None (없음)</option>
+                <option value="1 Car">1 Car</option>
+                <option value="2 Car">2 Car</option>
+                <option value="3 Car">3 Car</option>
+              </select>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+      <button type="submit" class="submit-btn">예측하기</button>
+    </form>
+
+    <!-- 결과 표시 -->
+    <div id="result" class="result-box">
+      <div class="result-title">📊 연간 냉난방 부하 예측 결과</div>
+      <div class="result-grid">
+        <div class="result-card heating">
+          <div class="label">🔥 연간 난방 부하</div>
+          <div class="value"><span id="heatingKwh">-</span> <span style="font-size:12px; font-weight:normal; color:#64748b;">kWh</span></div>
+          <div style="font-size:11px; color:#94a3b8; margin-top:2px;" id="heatingMbtu">(- MBtu)</div>
+        </div>
+        <div class="result-card cooling">
+          <div class="label">❄️ 연간 냉방 부하</div>
+          <div class="value"><span id="coolingKwh">-</span> <span style="font-size:12px; font-weight:normal; color:#64748b;">kWh</span></div>
+          <div style="font-size:11px; color:#94a3b8; margin-top:2px;" id="coolingMbtu">(- MBtu)</div>
+        </div>
+      </div>
+      <div id="warningBox" class="warning-box"></div>
+      <div id="noteText" class="note"></div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
